@@ -1,34 +1,36 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "yourdockerhubusername/website"
+    }
+
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
-                echo "Cloning branch: ${env.BRANCH_NAME}"
-                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/bhumi002/website.git'
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/hshar/website.git'
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo "Running build step"
-                // Add actual build commands here
+                script {
+                    sh 'docker build -t $IMAGE_NAME:$BRANCH_NAME .'
+                }
             }
         }
 
-        stage('Deploy') {
+        stage('Publish If Master') {
             when {
                 branch 'master'
             }
             steps {
-                echo "Deploying to port 80 (only on master branch)"
-                sh '''
-                    sudo docker build -t my-app .
-                    sudo docker stop my-app || true
-                    sudo docker rm my-app || true
-                    sudo docker run -d -p 80:80 --name my-app my-app
-                '''
+                script {
+                    sh 'docker rm -f website || true'
+                    sh 'docker run -d -p 82:80 --name website $IMAGE_NAME:master'
+                }
             }
         }
     }
 }
+
